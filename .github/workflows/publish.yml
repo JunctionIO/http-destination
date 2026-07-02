@@ -33,16 +33,15 @@ jobs:
 
       - run: nix profile install nixpkgs#devenv
 
-      - name: Build container
-        run: devenv container build http-destination
-
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Push image
+      - name: Build and push image
         run: |
           VERSION="${{ github.ref_name }}"
-          docker tag http-destination ghcr.io/junctionio/http-destination:${VERSION}
-          docker tag http-destination ghcr.io/junctionio/http-destination:latest
-          docker push ghcr.io/junctionio/http-destination:${VERSION}
-          docker push ghcr.io/junctionio/http-destination:latest
+          CONTAINERS_REGISTRIES_CONF=/dev/null devenv container copy \
+            --registry docker://ghcr.io/junctionio/ \
+            --copy-args="--dest-creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+            http-destination
+          CONTAINERS_REGISTRIES_CONF=/dev/null nix run nixpkgs#skopeo -- copy \
+            --src-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+            --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+            docker://ghcr.io/junctionio/http-destination:latest \
+            docker://ghcr.io/junctionio/http-destination:${VERSION}

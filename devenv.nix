@@ -2,6 +2,7 @@
   packages = [ pkgs.go ];
   containers.http-destination = {
     name = "http-destination";
+    registry = "ghcr.io/junctionio/";
     entrypoint = [ "/bin/worker" ];
     copyToRoot = pkgs.buildEnv {
       name = "http-destination-root";
