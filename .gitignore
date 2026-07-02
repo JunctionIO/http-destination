@@ -1,2 +1,10 @@
+# Binary
+/http-destination
+
+# Environment
 .env
-http-destination
+
+# devenv
+.devenv/
+.devenv.flake.nix
+devenv.lock
