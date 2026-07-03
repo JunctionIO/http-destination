@@ -1,5 +1,6 @@
 # Binary
 /http-destination
+/worker
 
 # Environment
 .env
