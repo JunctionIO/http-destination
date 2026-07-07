@@ -21,7 +21,7 @@ func NewDeliverer() *Deliverer {
 	}
 }
 
-func (d *Deliverer) Deliver(config HTTPConfig, payload json.RawMessage) (status string, errStr *string) {
+func (d *Deliverer) Deliver(config HTTPConfig, payload json.RawMessage, traceID string) (status string, errStr *string) {
 	req, err := http.NewRequest(http.MethodPost, config.URL, bytes.NewReader(payload))
 
 	if err != nil {
@@ -30,6 +30,10 @@ func (d *Deliverer) Deliver(config HTTPConfig, payload json.RawMessage) (status 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+
+	if traceID != "" {
+		req.Header.Set("X-Junction-Trace-ID", traceID)
+	}
 
 	if config.AuthHeader != "" && config.AuthToken != "" {
 		req.Header.Set(config.AuthHeader, config.AuthToken)

@@ -14,7 +14,7 @@ func TestDeliver_returnsDispatchedOn2xx(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, errStr := NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`))
+	status, errStr := NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`), "")
 
 	if status != "dispatched" {
 		t.Errorf("status = %v, want dispatched", status)
@@ -30,7 +30,7 @@ func TestDeliver_returnsErroredOnNon2xx(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, errStr := NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`))
+	status, errStr := NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`), "")
 
 	if status != "errored" {
 		t.Errorf("status = %v, want errored", status)
@@ -52,7 +52,7 @@ func TestDeliver_setsContentType(t *testing.T) {
 	}))
 	defer server.Close()
 
-	NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`))
+	NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`), "")
 
 	if contentType != "application/json" {
 		t.Errorf("Content-Type = %v, want application/json", contentType)
@@ -72,7 +72,7 @@ func TestDeliver_setsAuthHeaderWhenConfigured(t *testing.T) {
 		URL:        server.URL,
 		AuthHeader: "Authorization",
 		AuthToken:  "Bearer secret",
-	}, json.RawMessage(`{}`))
+	}, json.RawMessage(`{}`), "")
 
 	if authHeader != "Bearer secret" {
 		t.Errorf("Authorization = %v, want Bearer secret", authHeader)
@@ -88,10 +88,42 @@ func TestDeliver_doesNotSetAuthHeaderWhenEmpty(t *testing.T) {
 	}))
 	defer server.Close()
 
-	NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`))
+	NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`), "")
 
 	if authHeader != "" {
 		t.Errorf("Authorization = %v, want empty", authHeader)
+	}
+}
+
+func TestDeliver_setsTraceIDHeaderWhenProvided(t *testing.T) {
+	var traceID string
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		traceID = r.Header.Get("X-Junction-Trace-ID")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`), "trace-uuid")
+
+	if traceID != "trace-uuid" {
+		t.Errorf("X-Junction-Trace-ID = %v, want trace-uuid", traceID)
+	}
+}
+
+func TestDeliver_doesNotSetTraceIDHeaderWhenEmpty(t *testing.T) {
+	var hasHeader bool
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, hasHeader = r.Header["X-Junction-Trace-Id"]
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`), "")
+
+	if hasHeader {
+		t.Error("X-Junction-Trace-ID header was set, want absent")
 	}
 }
 
@@ -99,7 +131,7 @@ func TestDeliver_returnsErroredOnNetworkFailure(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	server.Close()
 
-	status, errStr := NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`))
+	status, errStr := NewDeliverer().Deliver(HTTPConfig{URL: server.URL}, json.RawMessage(`{}`), "")
 
 	if status != "errored" {
 		t.Errorf("status = %v, want errored", status)

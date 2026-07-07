@@ -55,7 +55,7 @@ func (c *Consumer) process(msg amqp.Delivery) {
 		return
 	}
 
-	status, errStr := c.deliverer.Deliver(env.Meta.Destination.Config, env.Payload)
+	status, errStr := c.deliverer.Deliver(env.Meta.Destination.Config, env.Payload, env.Meta.TraceID)
 
 	statusMsg := StatusMessage{
 		TraceID:     env.Meta.TraceID,
